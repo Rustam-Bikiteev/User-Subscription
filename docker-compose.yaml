@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: userservice
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: flyway-migrations
+    depends_on:
+      - db
+    command: -connectRetries=10 -url=jdbc:postgresql://db:5432/userservice -user=user -password=password migrate
+    volumes:
+      - ./src/main/resources/db/migration:/flyway/sql
+
+  app:
+    build: .
+    container_name: user-subscription-service
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/userservice
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
